@@ -24,45 +24,59 @@ namespace DotNetCoreSqlDb
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            // Add framework services.
-            services.AddMvc();
+            try
+            {
+                // Add framework services.
+                services.AddMvc();
 
-            if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production")
-                services.AddDbContext<MyDatabaseContext>(options =>
-                    options.UseSqlServer(Configuration.GetConnectionString("MyDbConnection")));
-            else
-                services.AddDbContext<MyDatabaseContext>(options =>
-                    options.UseSqlite("Data Source=localdatabase.db"));
+                if (Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production")
+                    services.AddDbContext<MyDatabaseContext>(options =>
+                        options.UseSqlServer(Configuration.GetConnectionString("MyDbConnection")));
+                else
+                    services.AddDbContext<MyDatabaseContext>(options =>
+                        options.UseSqlite("Data Source=localdatabase.db"));
 
-            // Automatically perform database migration
-            services.BuildServiceProvider().GetService<MyDatabaseContext>().Database.Migrate();
+                // Automatically perform database migration
+                services.BuildServiceProvider().GetService<MyDatabaseContext>().Database.Migrate();
+            }
+            catch (Exception exception)
+            {
+                Console.WriteLine(exception);
+            }
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole(Configuration.GetSection("Logging"));
-            loggerFactory.AddDebug();
-            loggerFactory.AddAzureWebAppDiagnostics();
-
-            if (env.IsProduction())
+            try
             {
-                app.UseDeveloperExceptionPage();
-                app.UseBrowserLink();
+                loggerFactory.AddConsole(Configuration.GetSection("Logging"));
+                loggerFactory.AddDebug();
+                loggerFactory.AddAzureWebAppDiagnostics();
+
+                if (env.IsProduction())
+                {
+                    app.UseDeveloperExceptionPage();
+                    app.UseBrowserLink();
+                }
+                else
+                {
+                    app.UseExceptionHandler("/Home/Error");
+                }
+
+                app.UseStaticFiles();
+
+                app.UseMvc(routes =>
+                {
+                    routes.MapRoute(
+                        name: "default",
+                        template: "{controller=Todos}/{action=Index}/{id?}");
+                });
             }
-            else
+            catch(Exception exception)
             {
-                app.UseExceptionHandler("/Home/Error");
+               Console.WriteLine(exception);
             }
-
-            app.UseStaticFiles();
-
-            app.UseMvc(routes =>
-            {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller=Todos}/{action=Index}/{id?}");
-            });
         }
     }
 }
